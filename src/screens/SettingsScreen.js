@@ -257,7 +257,7 @@ export default function SettingsScreen({ money, onReset }) {
         </View>
 
         <View style={[styles.section, { backgroundColor: tc.surface }]}>
-          <Text style={[styles.sectionTitle, { color: tc.textSecondary }]}>{t('debug')}</Text>
+          <Text style={[styles.sectionTitle, { color: tc.textSecondary }]}>{t('data')}</Text>
           <Pressable
             style={[styles.resetBtn, { marginBottom: 14 }]}
             onPress={() => { haptic('medium'); onResetPress(); }}
