@@ -1,0 +1,13 @@
+{
+  "msg_bus_scrapped_insured": "{v0} était irréparable. L'assurance a payé {v1}.",
+  "msg_bus_scrapped_salvage": "{v0} était irréparable. Vous avez récupéré {v1}.",
+  "msg_drivers_joined": "{v0} nouveau(x) conducteur(s) rejoint(s)!",
+  "msg_job_requires_staff": "{v0} requiert {v1} personnel disponible (vous avez {v2}).",
+  "msg_n_staff": "{v0} personnel",
+  "msg_n_units": "{v0} unités",
+  "msg_open_branch_in_first": "Ouvrez une succursale à {v0} d'abord.",
+  "msg_open_store_in_first": "Ouvrez une boutique à {v0} d'abord.",
+  "msg_retail_profit": "{v0} - {v1} de profit",
+  "msg_storage_full_upgrade": "Impossible de stocker plus. Améliorez pour augmenter la capacité.",
+  "msg_unlock_req_not_met": "Exigence de déblocage non remplie."
+}

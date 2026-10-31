@@ -1,3 +1,6 @@
+// Must run before App (and every screen module) so module-scope
+// Dimensions.get('window') reads see the web content column.
+import './src/data/webDims';
 import { registerRootComponent } from 'expo';
 
 import App from './App';

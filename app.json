@@ -1,24 +1,82 @@
 {
   "expo": {
-    "name": "tap-game-rn",
+    "name": "Void Business",
     "slug": "tap-game-rn",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/app/icon.png",
     "userInterfaceStyle": "light",
-    "ios": {
-      "supportsTablet": true
+    "splash": {
+      "image": "./assets/app/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
     },
-    "android": {
-      "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.andysocial.voidbusiness",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "SKAdNetworkItems": [
+          {
+            "SKAdNetworkIdentifier": "cstr6suwn9.skadnetwork"
+          }
+        ]
       }
     },
+    "android": {
+      "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.VIBRATE",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ],
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/app/android-icon-foreground.png",
+        "backgroundImage": "./assets/app/android-icon-background.png",
+        "monochromeImage": "./assets/app/android-icon-monochrome.png"
+      },
+      "package": "com.andysocial.voidbusiness",
+      "versionCode": 6
+    },
     "web": {
-      "favicon": "./assets/favicon.png"
-    }
+      "favicon": "./assets/app/favicon.png"
+    },
+    "plugins": [
+      "expo-status-bar",
+      [
+        "react-native-cloud-store",
+        {
+          "iCloud": {
+            "kv": {
+              "enabled": true
+            }
+          }
+        }
+      ],
+      [
+        "react-native-google-mobile-ads",
+        {
+          "iosAppId": "ca-app-pub-1505977777207758~6560490719",
+          "androidAppId": "ca-app-pub-1505977777207758~4635700760"
+        }
+      ],
+      "expo-iap",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "kotlinVersion": "2.2.21"
+          }
+        }
+      ],
+      "./plugins/withKotlinMetadataCheck.js"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "b5b05791-2dce-4830-9071-ed5c7faa759f"
+      }
+    },
+    "owner": "andyjxck"
   }
 }
