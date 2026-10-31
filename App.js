@@ -46,7 +46,7 @@ import {
   markLegacyUnlocked,
 } from './src/data/store';
 import ShopScreen from './src/screens/ShopScreen';
-import { restoreCloudIfNewer, saveToCloud, GAME_KEYS } from './src/data/cloudsave';
+import { restoreCloudIfNewer, saveToCloud, clearCloudSave, GAME_KEYS } from './src/data/cloudsave';
 import { runMigrations } from './src/data/migrations';
 import { issueFoundersDealership } from './src/data/foundersGrant';
 import { LEGACY_UNLOCK_AT, hasReachedLegacy } from './src/data/legacyUnlock';
@@ -786,6 +786,8 @@ function AppContent() {
             // dealership is part of that purchase, so let it re-grant.
             resetFoundersDealershipGrant();
             AsyncStorage.multiRemove(GAME_KEYS.filter((k) => k !== 'tapGameStore')).catch(() => {});
+            // The prompt promises the iCloud copy goes too.
+            clearCloudSave().catch(() => {});
           }}
         />
       )}

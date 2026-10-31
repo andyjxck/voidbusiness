@@ -188,6 +188,7 @@
     },
     "plugins": [
       "expo-status-bar",
+      "./plugins/withICloudKeyValueOnly.js",
       [
         "react-native-cloud-store",
         {

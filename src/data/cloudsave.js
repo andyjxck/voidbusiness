@@ -30,6 +30,32 @@ let lastPushedSignature = null;
 const CLOUD_KEY = 'voidbusiness_save_v1';
 const CLOUD_SCHEMA_VERSION = 1;
 
+// iCloud key-value storage allows 1 MB per app (and per value). Stay under
+// it with headroom for the key and Apple's own bookkeeping; a larger save
+// stays local-only instead of failing in the native layer.
+export const CLOUD_MAX_BYTES = 1000 * 1000;
+
+// 'ok' | 'too_large' | 'unavailable' - last push result, for diagnostics/UI.
+let lastCloudStatus = null;
+export function getCloudSaveStatus() {
+  return lastCloudStatus;
+}
+
+// UTF-8 byte length without TextEncoder (not guaranteed on every runtime).
+export function utf8ByteLength(str) {
+  let bytes = 0;
+  for (let i = 0; i < str.length; i++) {
+    const c = str.charCodeAt(i);
+    if (c < 0x80) bytes += 1;
+    else if (c < 0x800) bytes += 2;
+    else if (c >= 0xd800 && c <= 0xdbff && i + 1 < str.length) {
+      const next = str.charCodeAt(i + 1);
+      if (next >= 0xdc00 && next <= 0xdfff) { bytes += 4; i++; } else bytes += 3;
+    } else bytes += 3;
+  }
+  return bytes;
+}
+
 let CloudStore = null;
 if (Platform.OS === 'ios') {
   try {
@@ -67,7 +93,7 @@ export async function loadFromCloud() {
 // the cloud in sync with any local mutations that didn't bump
 // tapGameLastUpdate (e.g. settings changes).
 export async function saveToCloud() {
-  if (!CloudStore) return false;
+  if (!CloudStore) { lastCloudStatus = 'unavailable'; return false; }
   try {
     const entries = await AsyncStorage.multiGet(GAME_KEYS);
     const data = {};
@@ -96,9 +122,33 @@ export async function saveToCloud() {
       savedAt: Date.now(),
       data,
     });
+    if (utf8ByteLength(CLOUD_KEY) + utf8ByteLength(payload) > CLOUD_MAX_BYTES) {
+      // Too big for iCloud KV: keep playing on the local save and leave the
+      // last good cloud copy untouched. Retried on the next push.
+      lastCloudStatus = 'too_large';
+      if (__DEV__) console.warn('[cloudsave] save exceeds the iCloud key-value limit; keeping it local');
+      return false;
+    }
     await CloudStore.kvSetItem(CLOUD_KEY, payload);
+    lastCloudStatus = 'ok';
     if (CloudStore.kvSync) await CloudStore.kvSync();
     lastPushedSignature = signature;
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// Reset Progress: delete the iCloud copy too, so a reinstall or another
+// device doesn't restore the old save. Best effort - resolves false when
+// iCloud is unavailable.
+export async function clearCloudSave() {
+  lastPushedSignature = null;
+  if (!CloudStore) return false;
+  try {
+    if (CloudStore.kvRemoveItem) await CloudStore.kvRemoveItem(CLOUD_KEY);
+    else await CloudStore.kvSetItem(CLOUD_KEY, '');
+    if (CloudStore.kvSync) await CloudStore.kvSync();
     return true;
   } catch (e) {
     return false;
