@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/app/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.andysocial.voidbusiness",
@@ -168,9 +168,7 @@
     "android": {
       "permissions": [
         "android.permission.INTERNET",
-        "android.permission.VIBRATE",
-        "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE"
+        "android.permission.VIBRATE"
       ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
@@ -179,7 +177,11 @@
         "monochromeImage": "./assets/app/android-icon-monochrome.png"
       },
       "package": "com.andysocial.voidbusiness",
-      "versionCode": 6
+      "versionCode": 6,
+      "blockedPermissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "favicon": "./assets/app/favicon.png"
