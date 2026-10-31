@@ -510,7 +510,7 @@ export default function ShopScreen({ onClose }) {
 
       <PoliciesScreen
         visible={!!policyTab}
-        initialTab={policyTab || 'privacy'}
+        doc={policyTab || 'privacy'}
         onClose={() => setPolicyTab(null)}
       />
     </View>

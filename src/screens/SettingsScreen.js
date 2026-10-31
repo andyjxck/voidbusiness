@@ -298,7 +298,7 @@ export default function SettingsScreen({ money, onReset }) {
         </View>
       </Modal>
 
-      <PoliciesScreen visible={!!policyTab} initialTab={policyTab || 'privacy'} onClose={() => setPolicyTab(null)} />
+      <PoliciesScreen visible={!!policyTab} doc={policyTab || 'privacy'} onClose={() => setPolicyTab(null)} />
     </View>
   );
 }
