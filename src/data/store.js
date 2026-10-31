@@ -87,6 +87,7 @@ const DEFAULT_STATE = {
   founders: false,
   accountant: false,
   foundersDealershipIssued: false,
+  legacyUnlocked: false, // permanent once set - see legacyUnlock.js
   processedTxIds: [],
   unlockedSkins: [],
   equippedSkin: 'default',
@@ -131,6 +132,7 @@ export function getStoreSnapshot() {
     connected,
     initialized,
     available: !!iap,
+    legacyUnlocked: !!state.legacyUnlocked,
     products: productsById,
     productsStatus,
   };
@@ -242,6 +244,19 @@ export function markFoundersDealershipIssued() {
   persist();
 }
 
+// Legacy tab: unlocked for good the first time it's reached (or the Legacy
+// Key pack is bought). Never cleared, not even by Reset Progress.
+export function isLegacyUnlocked() {
+  return !!state.legacyUnlocked;
+}
+
+export function markLegacyUnlocked() {
+  if (state.legacyUnlocked) return;
+  state = { ...state, legacyUnlocked: true };
+  persist();
+  notify();
+}
+
 // Progress reset deletes the dealership with every other business, so the
 // grant must be re-armed or a paying player loses part of the bundle.
 export function resetFoundersDealershipGrant() {
@@ -306,6 +321,10 @@ async function handleTransaction(purchase) {
     const amount = CASH_PACK_GRANTS[productId] || 0;
     grantHandler({ kind: 'cash', amount, productId });
     unlockSkinFor(productId);
+    if (productId === PRODUCTS.CASH_3 && !state.legacyUnlocked) {
+      state = { ...state, legacyUnlocked: true };
+      persist();
+    }
     if (txId) {
       state = {
         ...state,

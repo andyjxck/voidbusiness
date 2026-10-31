@@ -43,10 +43,13 @@ import {
   resetFoundersDealershipGrant,
   isVip,
   scaleDuration,
+  isLegacyUnlocked,
+  markLegacyUnlocked,
 } from './src/data/store';
 import ShopScreen from './src/screens/ShopScreen';
 import { restoreCloudIfNewer, saveToCloud, GAME_KEYS } from './src/data/cloudsave';
 import { runMigrations } from './src/data/migrations';
+import { LEGACY_UNLOCK_AT, hasReachedLegacy } from './src/data/legacyUnlock';
 import { initAds, showRewardedAd } from './src/data/ads';
 import { loadSettings } from './src/data/settings';
 import { loadLanguage, t, tf } from './src/data/i18n';
@@ -68,8 +71,7 @@ import { useAppSettings, useThemeColors } from './src/components/AppText';
 import { showAlert } from './src/data/alert';
 
 // Legacy is post-Bank content, so the tab stays hidden until the player is
-// operating at that scale.
-const LEGACY_UNLOCK_AT = 500_000_000;
+// operating at that scale - then stays for good (src/data/legacyUnlock.js).
 
 // Progress keys written as one debounced snapshot so a crash never leaves
 // money and businesses from different moments on disk.
@@ -423,6 +425,17 @@ function AppContent() {
     syncOwnedCounts({ businesses: ownedBusinesses.length, estates: reUnits + legacyEstates });
   }, [ownedBusinesses, holdings, progression, loaded]);
 
+  // Legacy tab: once reached it stays (persisted in the entitlement store).
+  // The Legacy Key pack sets the flag in the store when it's bought.
+  const legacyOwnedCount = getOwnedCount(progression);
+  const legacyReachedNow = money >= LEGACY_UNLOCK_AT || legacyOwnedCount > 0;
+  useEffect(() => {
+    if (!loaded || isLegacyUnlocked()) return;
+    if (hasReachedLegacy({ money, progression })) markLegacyUnlocked();
+    // money/progression are read only when the reached flag flips.
+  }, [loaded, legacyReachedNow]);
+  const legacyTabVisible = isLegacyUnlocked() || legacyReachedNow;
+
   // Flush play time periodically
   useEffect(() => {
     if (!loaded) return;
@@ -692,7 +705,7 @@ function AppContent() {
       <AppShell
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        showProgression={money >= LEGACY_UNLOCK_AT || getOwnedCount(progression) > 0}
+        showProgression={legacyTabVisible}
         money={money}
         hourlyIncome={totalHourlyIncome}
       >
@@ -791,7 +804,7 @@ function AppContent() {
       <FloatingNavBar
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        showProgression={money >= LEGACY_UNLOCK_AT || getOwnedCount(progression) > 0}
+        showProgression={legacyTabVisible}
       />
       </AppShell>
     </View>

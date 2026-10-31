@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { hasReachedLegacy } from './legacyUnlock';
 
 // Save schema versioning. Each breaking change to a stored key's shape
 // bumps CURRENT_SCHEMA_VERSION and adds a migration function below.
@@ -12,7 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // which is a no-op: the load code in App.js already tolerates missing
 // keys and malformed JSON via try/catch and createInitial*() fallbacks.
 
-export const CURRENT_SCHEMA_VERSION = 1;
+export const CURRENT_SCHEMA_VERSION = 2;
 
 const SCHEMA_VERSION_KEY = 'tapGameSchemaVersion';
 
@@ -25,7 +26,28 @@ const MIGRATIONS = [
   async function v0_to_v1() {
     return true;
   },
-  // v1 -> v2: (add future migrations here)
+  // v1 -> v2: permanent Legacy unlock. Saves that already reached Legacy
+  // (balance at the threshold, a Legacy item owned, or the Legacy Key pack
+  // bought - its card skin is the record) get legacyUnlocked in the
+  // entitlement store, so spending below the threshold no longer hides the tab.
+  async function v1_to_v2() {
+    const [[, rawMoney], [, rawProgression], [, rawStore]] = await AsyncStorage.multiGet([
+      'tapGameMoney', 'tapGameProgression', 'tapGameStore',
+    ]);
+    const parse = (raw) => { try { return raw ? JSON.parse(raw) : null; } catch { return null; } };
+    const store = parse(rawStore) || {};
+    if (store.legacyUnlocked) return true;
+    const reached = hasReachedLegacy({
+      money: parseFloat(rawMoney),
+      progression: parse(rawProgression),
+      store,
+    });
+    if (reached) {
+      await AsyncStorage.setItem('tapGameStore', JSON.stringify({ ...store, legacyUnlocked: true }));
+    }
+    return true;
+  },
+  // v2 -> v3: (add future migrations here)
 ];
 
 export async function getSchemaVersion() {
