@@ -523,19 +523,3 @@ export async function teardownStore() {
   }
   connected = false;
 }
-
-// ─── Dev hooks (simulator testing without App Store Connect products) ───────
-// __DEV__-only: routes through the identical grant/entitlement path a real
-// StoreKit transaction would take, so every perk can be exercised end to end.
-export function devGrant(productId) {
-  if (!__DEV__) return;
-  const fakeTxId = `dev_${productId}_${Date.now()}`;
-  handleTransaction({ productId, transactionId: fakeTxId, purchaseState: 'purchased' }).catch(() => {});
-}
-
-export function devClearEntitlements() {
-  if (!__DEV__) return;
-  state = { ...DEFAULT_STATE };
-  persist();
-  notify();
-}

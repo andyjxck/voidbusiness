@@ -86,4 +86,9 @@ describe('store launch gating', () => {
     expect(store.getProductsStatus()).toBe('error');
   });
 
+  it('no longer exposes developer grant hooks', () => {
+    const store = freshStore();
+    expect(store.devGrant).toBeUndefined();
+    expect(store.devClearEntitlements).toBeUndefined();
+  });
 });
