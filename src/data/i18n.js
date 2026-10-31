@@ -2370,6 +2370,12 @@ item_spirits: "Rare Spirits",
     fallback_movie: 'Movie',
     fallback_your_game: 'Your game',
     fallback_your_movie: 'Your movie',
+    policy_tab_privacy: 'Privacy',
+    policy_tab_terms: 'Terms',
+    policy_tab_transparency: 'Transparency',
+    policy_tab_licenses: 'Licenses',
+    policy_last_updated: 'Last updated:',
+    policy_open_web: 'Open the web version',
   },
 
   es: {
@@ -66783,6 +66789,7 @@ DICTIONARY['en-GB'] = {
   gamedev_fatigue_effective: 'Fatigue: {v0}h effective',
   alert_sorry: 'Sorry',
   alert_no_ad_available: 'Sorry, no ad available. Try again later',
+    policy_tab_licenses: 'Licences',
 };
 
 let currentLang = DEFAULT_LANG;

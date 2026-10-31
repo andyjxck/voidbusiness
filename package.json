@@ -30,7 +30,8 @@
     "web": "expo start --web",
     "postinstall": "patch-package",
     "test": "jest",
-    "lint": "eslint src App.js --ext .js"
+    "lint": "eslint src App.js --ext .js",
+    "legal:build": "node scripts/build-legal-pages.js"
   },
   "private": true,
   "overrides": {
