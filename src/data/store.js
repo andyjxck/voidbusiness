@@ -100,6 +100,13 @@ const listeners = new Set();
 let grantHandler = null; // (grant) => void, registered by App.js
 let txSub = null;
 let errSub = null;
+// Transactions that arrive before the saved game has loaded are held here,
+// unfinished, and processed once App.js calls setGameReady(true). Granting
+// earlier would apply cash/businesses to the empty pre-load state, which the
+// save load then overwrites (the purchase would be lost).
+let gameReady = false;
+let pendingTx = [];
+let connectPromise = null;
 
 function notify() {
   listeners.forEach((fn) => {
@@ -278,7 +285,8 @@ async function handleTransaction(purchase) {
       return;
     }
     // If the game layer isn't ready to receive grants, leave the transaction
-    // unfinished - StoreKit will redeliver it once a handler is registered.
+    // unfinished so StoreKit redelivers it (the listener also queues it until
+    // setGameReady(true)).
     if (!grantHandler) return;
     const amount = CASH_PACK_GRANTS[productId] || 0;
     grantHandler({ kind: 'cash', amount, productId });
@@ -330,17 +338,49 @@ async function safeFinish(purchase, isConsumable) {
 }
 
 // ─── Lifecycle ───────────────────────────────────────────────────────────────
-export async function initStore() {
-  // Load persisted entitlements first so perks apply offline immediately.
+// Read persisted entitlements so perks apply offline immediately. Idempotent;
+// App.js awaits this before reading the save, then connects in the background.
+export async function loadEntitlements() {
+  if (initialized) return;
   try {
     const raw = await AsyncStorage.getItem(STORE_KEY);
     if (raw) state = { ...DEFAULT_STATE, ...JSON.parse(raw) };
   } catch (e) { /* ignore */ }
   initialized = true;
   notify();
+}
+
+// Called by App.js once the saved game is loaded and the grant handler is
+// registered. Drains any transactions StoreKit delivered during startup.
+export function setGameReady(ready) {
+  gameReady = !!ready;
+  if (!gameReady) return;
+  const queued = pendingTx;
+  pendingTx = [];
+  (async () => {
+    for (const purchase of queued) {
+      try { await handleTransaction(purchase); } catch (e) { /* ignore */ }
+    }
+  })();
+}
+
+export function isGameReady() {
+  return gameReady;
+}
+
+export function initStore() {
+  if (!connectPromise) {
+    connectPromise = connectStore().finally(() => { connectPromise = null; });
+  }
+  return connectPromise;
+}
+
+async function connectStore() {
+  await loadEntitlements();
 
   if (!iap) {
     if (IS_DEV) console.warn('[store] purchases unavailable - native module missing (Expo Go or stale dev build)');
+    setProductsStatus('error');
     return false;
   }
   try {
@@ -349,11 +389,17 @@ export async function initStore() {
   } catch (e) {
     if (IS_DEV) console.warn('[store] initConnection failed:', e && e.message);
     connected = false;
+    setProductsStatus('error');
     return false;
   }
 
   if (!txSub) {
     txSub = iap.purchaseUpdatedListener((purchase) => {
+      if (!gameReady) {
+        // Hold (unfinished) until the save has loaded - see setGameReady.
+        pendingTx.push(purchase);
+        return;
+      }
       handleTransaction(purchase).catch(() => {});
     });
   }
@@ -367,8 +413,26 @@ export async function initStore() {
   return true;
 }
 
+// 'idle' | 'loading' | 'ready' | 'error' - drives the shop's store-unavailable
+// state. 'ready' means at least one product came back from the App Store.
+let productsStatus = 'idle';
+
+export function getProductsStatus() {
+  return productsStatus;
+}
+
+function setProductsStatus(next) {
+  if (productsStatus === next) return;
+  productsStatus = next;
+  notify();
+}
+
 export async function refreshProducts() {
-  if (!iap || !connected) return;
+  if (!iap || !connected) {
+    setProductsStatus('error');
+    return;
+  }
+  setProductsStatus('loading');
   try {
     const inApp = await iap.fetchProducts({ skus: [...NONCONSUMABLE_IDS, ...CONSUMABLE_IDS], type: 'in-app' });
     const subs = await iap.fetchProducts({ skus: SUB_IDS, type: 'subs' });
@@ -377,8 +441,27 @@ export async function refreshProducts() {
       if (p && p.id) map[p.id] = p;
     });
     productsById = map;
-  } catch (e) { /* ignore */ }
+    setProductsStatus(Object.keys(map).length ? 'ready' : 'error');
+  } catch (e) {
+    setProductsStatus(Object.keys(productsById).length ? 'ready' : 'error');
+  }
   notify();
+}
+
+// Shop entry point: reconnect if needed, then fetch fresh products.
+export async function reloadProducts() {
+  if (!iap) {
+    setProductsStatus('error');
+    return false;
+  }
+  setProductsStatus('loading');
+  if (!connected) {
+    const ok = await initStore();
+    if (!ok) setProductsStatus('error');
+    return !!ok;
+  }
+  await refreshProducts();
+  return true;
 }
 
 // Re-derive all entitlements from StoreKit: active subs + held non-consumables.

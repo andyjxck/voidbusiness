@@ -33,6 +33,8 @@ import { getConstructionPendingPayout } from './src/data/construction';
 import { getDealershipPendingSales, createFoundersDealership } from './src/data/dealership';
 import {
   initStore,
+  loadEntitlements,
+  setGameReady,
   setGrantHandler,
   subscribeStore,
   hasAccountant,
@@ -221,7 +223,6 @@ function AppContent() {
       await loadSettings();
       await loadLanguage();
       await loadStats();
-      initAds();
 
       // Bundled emoji font - the iOS 26 sim runtime can't render system emoji.
       Font.loadAsync({ NotoColorEmoji: require('./assets/fonts/NotoColorEmoji.ttf') }).catch(() => {});
@@ -234,8 +235,15 @@ function AppContent() {
       await runMigrations();
 
       // Load purchase entitlements (reads tapGameStore just restored from
-      // iCloud), then connect to StoreKit for products + reconciliation.
-      await initStore();
+      // iCloud) so VIP perks apply to offline earnings below.
+      await loadEntitlements();
+
+      // Start the ad SDK now that VIP status is known (VIPs skip the ad
+      // preload), and connect to StoreKit in the background. Transactions it
+      // delivers are held until the save below has loaded - see the
+      // setGameReady effect - so a launch-time grant can't be overwritten.
+      initAds();
+      initStore().catch(() => {});
 
       const entries = Object.fromEntries(await AsyncStorage.multiGet(GAME_KEYS));
       const now = Date.now();
@@ -468,6 +476,20 @@ function AppContent() {
     return () => clearInterval(interval);
   }, [loaded, runIncomeTick]);
 
+  const loadedRef = useRef(false);
+  const issueFoundersDealershipIfNeeded = useCallback(() => {
+    if (!loadedRef.current || !needsFoundersDealership()) return;
+    if (ownedBusinessesRef.current.some((b) => b.foundersDealership)) {
+      markFoundersDealershipIssued();
+      return;
+    }
+    const biz = createFoundersDealership();
+    if (!biz) return;
+    markFoundersDealershipIssued();
+    recordBusinessBought();
+    setOwnedBusinesses((prev) => (prev.some((b) => b.foundersDealership) ? prev : [...prev, { ...biz, foundersDealership: true }]));
+  }, []);
+
   // Store: apply purchase grants to game state + re-render on entitlement change
   useEffect(() => {
     setGrantHandler((grant) => {
@@ -487,20 +509,29 @@ function AppContent() {
     const unsub = subscribeStore(() => {
       setStoreTick((n) => n + 1);
       // Mid-session restore of Founders: issue the dealership immediately,
-      // not just on next launch.
-      if (needsFoundersDealership() && !ownedBusinessesRef.current.some((b) => b.foundersDealership)) {
-        const biz = createFoundersDealership();
-        if (biz) {
-          markFoundersDealershipIssued();
-          setOwnedBusinesses((prev) => (prev.some((b) => b.foundersDealership) ? prev : [...prev, { ...biz, foundersDealership: true }]));
-        }
-      }
+      // not just on next launch. Never before the save has loaded, or the
+      // load would overwrite it.
+      issueFoundersDealershipIfNeeded();
     });
     return () => {
       setGrantHandler(null);
       unsub();
     };
-  }, []);
+  }, [issueFoundersDealershipIfNeeded]);
+
+  // Once the save is loaded: catch a Founders restore that finished while the
+  // save was loading (StoreKit connects in the background), then release any
+  // transactions StoreKit delivered during startup.
+  useEffect(() => {
+    if (!loaded) return undefined;
+    loadedRef.current = true;
+    issueFoundersDealershipIfNeeded();
+    setGameReady(true);
+    return () => {
+      loadedRef.current = false;
+      setGameReady(false);
+    };
+  }, [loaded, issueFoundersDealershipIfNeeded]);
 
   // Check for completed upgrades every second
   useEffect(() => {
