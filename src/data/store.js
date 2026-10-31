@@ -132,7 +132,22 @@ export function getStoreSnapshot() {
     initialized,
     available: !!iap,
     products: productsById,
+    productsStatus,
   };
+}
+
+// Whole-percent saving of the yearly plan over twelve months of the monthly
+// plan, from the real StoreKit prices. Null when it can't be shown honestly:
+// a product is missing, a price isn't a positive number, the currencies
+// differ, or there's no saving.
+export function yearlySavingPercent(monthly, yearly) {
+  if (!monthly || !yearly) return null;
+  const m = Number(monthly.price);
+  const y = Number(yearly.price);
+  if (!Number.isFinite(m) || !Number.isFinite(y) || m <= 0 || y <= 0) return null;
+  if (monthly.currency && yearly.currency && monthly.currency !== yearly.currency) return null;
+  const pct = Math.floor((1 - y / (m * 12)) * 100);
+  return pct >= 1 ? pct : null;
 }
 
 export function getProduct(productId) {

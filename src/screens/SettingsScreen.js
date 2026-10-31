@@ -95,7 +95,7 @@ export default function SettingsScreen({ money, onReset }) {
   const [settings, setLocalSettings] = useState(getSettings);
   const [language, setLocalLanguage] = useState(getCurrentLanguage);
   const [langModal, setLangModal] = useState(false);
-  const [privacyModal, setPrivacyModal] = useState(false);
+  const [policyTab, setPolicyTab] = useState(null); // 'privacy' | 'terms' | 'licenses' | null
   const [stats, setStats] = useState(getStats);
   const tc = useThemeColors();
 
@@ -233,19 +233,27 @@ export default function SettingsScreen({ money, onReset }) {
 
         <View style={[styles.section, { backgroundColor: tc.surface }]}>
           <Text style={[styles.sectionTitle, { color: tc.textSecondary }]}>{t('settings_legal')}</Text>
-          <Pressable
-            style={[styles.row, { borderTopColor: tc.surfaceBorder }]}
-            onPress={() => {
-              haptic('light');
-              setPrivacyModal(true);
-            }}
-          >
-            <Text style={[styles.label, { color: tc.text }]}>{t('settings_policies')}</Text>
-            <View style={styles.valueRow}>
-              <Ionicons name="document-text-outline" size={18} color={tc.textSecondary} />
-              <Ionicons name="chevron-forward" size={18} color={tc.textSecondary} />
-            </View>
-          </Pressable>
+          {[
+            { tab: 'privacy', labelKey: 'legal_privacy_policy', icon: 'shield-checkmark-outline' },
+            { tab: 'terms', labelKey: 'legal_terms_of_use', icon: 'document-text-outline' },
+            { tab: 'licenses', labelKey: 'policy_tab_licenses', icon: 'ribbon-outline' },
+          ].map((row) => (
+            <Pressable
+              key={row.tab}
+              style={[styles.row, { borderTopColor: tc.surfaceBorder }]}
+              accessibilityRole="link"
+              onPress={() => {
+                haptic('light');
+                setPolicyTab(row.tab);
+              }}
+            >
+              <Text style={[styles.label, { color: tc.text }]}>{t(row.labelKey)}</Text>
+              <View style={styles.valueRow}>
+                <Ionicons name={row.icon} size={18} color={tc.textSecondary} />
+                <Ionicons name="chevron-forward" size={18} color={tc.textSecondary} />
+              </View>
+            </Pressable>
+          ))}
         </View>
 
         <View style={[styles.section, { backgroundColor: tc.surface }]}>
@@ -290,7 +298,7 @@ export default function SettingsScreen({ money, onReset }) {
         </View>
       </Modal>
 
-      <PoliciesScreen visible={privacyModal} onClose={() => setPrivacyModal(false)} />
+      <PoliciesScreen visible={!!policyTab} initialTab={policyTab || 'privacy'} onClose={() => setPolicyTab(null)} />
     </View>
   );
 }

@@ -1,7 +1,8 @@
 // VIP & Shop - its own nav-bar tab.
 // Product cards reuse the home-screen credit-card visual and flip on tap:
 // front = card face, back = what you get + the buy button.
-// Prices come from StoreKit; FALLBACK_PRICES cover pre-ASC dev builds.
+// Prices come only from StoreKit: a product the App Store didn't return has
+// no price and its button is disabled.
 
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Pressable, ScrollView, StyleSheet, ActivityIndicator, Animated } from 'react-native';
@@ -22,33 +23,31 @@ import {
   restore,
   isVip,
   setErrorHandler,
+  reloadProducts,
+  yearlySavingPercent,
 } from '../data/store';
 import { showAlert } from '../data/alert';
+import { t } from '../data/i18n';
+import PoliciesScreen from './PoliciesScreen';
 
-const VIP_PERKS = [
-  '+50% income on everything',
-  'All timers run 50% faster',
-  'Ad rewards without the ads',
-  'Half tax - same bill takes 2× as long',
-  '10 days before suspension (vs 5)',
-  'Gold VIP card skin',
+const VIP_PERK_KEYS = [
+  'shop_vip_perk_income',
+  'shop_vip_perk_timers',
+  'shop_vip_perk_ads',
+  'shop_vip_perk_tax',
+  'shop_vip_perk_suspension',
+  'shop_vip_perk_skin',
 ];
 
-const FALLBACK_PRICES = {
-  [PRODUCTS.VIP_MONTHLY]: '£7.99',
-  [PRODUCTS.VIP_YEARLY]: '£49.99',
-  [PRODUCTS.INCOME_15X]: '£3.99',
-  [PRODUCTS.INCOME_2X]: '£5.99',
-  [PRODUCTS.FOUNDERS]: '£9.99',
-  [PRODUCTS.CASH_1]: '£0.99',
-  [PRODUCTS.CASH_2]: '£2.99',
-  [PRODUCTS.CASH_3]: '£7.99',
-  [PRODUCTS.CASH_4]: '£19.99',
-};
+// '{name}' placeholders in translated strings.
+function fill(str, vars) {
+  return String(str).replace(/\{(\w+)\}/g, (m, k) => (vars[k] !== undefined ? String(vars[k]) : m));
+}
 
+// The App Store's localized price, or null when the product didn't load.
 function priceOf(productId) {
   const p = getProduct(productId);
-  return (p && p.displayPrice) || FALLBACK_PRICES[productId] || '-';
+  return (p && p.displayPrice) || null;
 }
 
 // Gold EMV chip with contact lines - the detail that sells "real card".
@@ -149,6 +148,7 @@ function FlipCard({ front, back, height, flipped, onFlip }) {
 }
 
 function BackContent({ lines, productId, owned, busy, onBuy }) {
+  const price = priceOf(productId);
   return (
     <View style={styles.backInner}>
       <View style={styles.backLines}>
@@ -162,19 +162,24 @@ function BackContent({ lines, productId, owned, busy, onBuy }) {
       {owned ? (
         <View style={styles.ownedPill}>
           <Ionicons name="checkmark-circle" size={12} color="#4ade80" />
-          <Text style={styles.ownedText}>OWNED</Text>
+          <Text style={styles.ownedText}>{t('shop_owned')}</Text>
         </View>
       ) : (
-        <Pressable style={styles.buyBtn} onPress={() => onBuy(productId)} disabled={!!busy}>
+        <Pressable
+          style={[styles.buyBtn, !price && styles.btnDisabled]}
+          onPress={() => onBuy(productId)}
+          disabled={!!busy || !price}
+          accessibilityState={{ disabled: !!busy || !price }}
+        >
           <LinearGradient
-            colors={['#fde68a', '#f59e0b']}
+            colors={price ? ['#fde68a', '#f59e0b'] : ['#475569', '#334155']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.buyBtnGrad}
           >
             {busy === productId
               ? <ActivityIndicator size="small" color="#451a03" />
-              : <Text style={styles.buyBtnText}>{priceOf(productId)}</Text>}
+              : <Text style={[styles.buyBtnText, !price && styles.btnTextDisabled]} numberOfLines={1}>{price || t('shop_unavailable_short')}</Text>}
           </LinearGradient>
         </Pressable>
       )}
@@ -224,16 +229,29 @@ export default function ShopScreen({ onClose }) {
   const [snap, setSnap] = useState(getStoreSnapshot());
   const [busy, setBusy] = useState(null);
   const [flipped, setFlipped] = useState(null); // productId of flipped card
+  const [policyTab, setPolicyTab] = useState(null); // 'terms' | 'privacy' | null
 
-  useEffect(() => subscribeStore(setSnap), []);
+  useEffect(() => {
+    const unsub = subscribeStore(setSnap);
+    // Fresh products every time the shop opens (reconnects if launch-time
+    // init failed). The store notifies, so the snapshot updates itself.
+    reloadProducts().catch(() => {});
+    return unsub;
+  }, []);
   // Surface StoreKit errors (declined payment, network failures) - user
   // cancels stay silent.
   useEffect(() => {
-    setErrorHandler((err) => {
-      showAlert('Purchase failed', (err && err.message) || 'The purchase could not be completed.');
+    setErrorHandler(() => {
+      showAlert(t('shop_purchase_failed'), t('shop_purchase_failed_msg'));
     });
     return () => setErrorHandler(null);
   }, []);
+  const retryProducts = () => { haptic('light'); reloadProducts().catch(() => {}); };
+  const storeLoading = snap.productsStatus === 'loading' && Object.keys(snap.products || {}).length === 0;
+  const storeUnavailable = !storeLoading && Object.keys(snap.products || {}).length === 0;
+  const monthlyPrice = priceOf(PRODUCTS.VIP_MONTHLY);
+  const yearlyPrice = priceOf(PRODUCTS.VIP_YEARLY);
+  const yearlySaving = yearlySavingPercent(getProduct(PRODUCTS.VIP_MONTHLY), getProduct(PRODUCTS.VIP_YEARLY));
   const vip = isVip();
   const toggleFlip = (id) => { haptic('light'); setFlipped((f) => (f === id ? null : id)); };
 
@@ -247,10 +265,8 @@ export default function ShopScreen({ onClose }) {
       const code = e && e.code;
       if (code !== 'user-cancelled') {
         showAlert(
-          'Purchase failed',
-          snap.available
-            ? 'The purchase could not be completed. Check your connection and try again.'
-            : 'Purchases are unavailable in this build (StoreKit not connected).'
+          t('shop_purchase_failed'),
+          e && e.message === 'store_unavailable' ? t('shop_store_unavailable') : t('shop_purchase_failed_msg')
         );
       }
     } finally {
@@ -264,9 +280,9 @@ export default function ShopScreen({ onClose }) {
     setBusy('restore');
     try {
       await restore();
-      showAlert('Done', 'Your purchases have been checked and restored where possible.');
+      showAlert(t('shop_restore_done'), t('shop_restore_done_msg'));
     } catch (e) {
-      showAlert('Restore failed', 'Could not reach the App Store. Try again later.');
+      showAlert(t('shop_restore_failed'), t('shop_restore_failed_msg'));
     } finally {
       setBusy(null);
     }
@@ -282,7 +298,7 @@ export default function ShopScreen({ onClose }) {
   return (
     <View style={[styles.root, { backgroundColor: tc.bg }]}>
       <View style={[styles.header, { borderBottomColor: tc.surfaceBorder }]}>
-        <Text style={[styles.title, { color: tc.text }]}>VIP & Shop</Text>
+        <Text style={[styles.title, { color: tc.text }]}>{t('shop_title')}</Text>
         {onClose ? (
           <Pressable onPress={() => { haptic('light'); onClose(); }} hitSlop={12}>
             <Ionicons name="close" size={26} color={tc.text} />
@@ -291,6 +307,23 @@ export default function ShopScreen({ onClose }) {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+
+        {storeLoading ? (
+          <View style={[styles.storeNotice, { borderColor: tc.surfaceBorder, backgroundColor: tc.surface }]}>
+            <ActivityIndicator size="small" color={tc.textMuted} />
+            <Text style={[styles.storeNoticeText, { color: tc.textMuted }]}>{t('shop_loading')}</Text>
+          </View>
+        ) : storeUnavailable ? (
+          <Pressable
+            style={[styles.storeNotice, { borderColor: tc.surfaceBorder, backgroundColor: tc.surface }]}
+            onPress={retryProducts}
+            accessibilityRole="button"
+          >
+            <Ionicons name="cloud-offline-outline" size={18} color={tc.textMuted} />
+            <Text style={[styles.storeNoticeText, { color: tc.text }]}>{t('shop_store_unavailable')}</Text>
+            <Text style={[styles.storeRetry, { color: tc.accent }]}>{t('shop_try_again')}</Text>
+          </Pressable>
+        ) : null}
 
         {/* VIP hero card */}
         <FlipCard
@@ -303,7 +336,7 @@ export default function ShopScreen({ onClose }) {
                 <Ionicons name="diamond" size={26} color="#fde68a" />
                 <Text style={styles.vipName}>VIP</Text>
                 <Text style={styles.vipTag}>
-                  {vip ? `ACTIVE • ${snap.vipYearly ? 'YEARLY' : 'MONTHLY'}` : 'Income, speed & tax perks - tap to see'}
+                  {vip ? t(snap.vipYearly ? 'shop_vip_active_yearly' : 'shop_vip_active_monthly') : t('shop_vip_tagline')}
                 </Text>
               </View>
             </CardFace>
@@ -312,36 +345,50 @@ export default function ShopScreen({ onClose }) {
             <CardBack colors={['#0f172a', '#1e293b']} style={styles.vipFace}>
               <View style={styles.vipBack}>
                 <View style={styles.vipPerks}>
-                  {VIP_PERKS.map((p) => (
-                    <View key={p} style={styles.vipPerkRow}>
+                  {VIP_PERK_KEYS.map((k) => (
+                    <View key={k} style={styles.vipPerkRow}>
                       <Ionicons name="checkmark" size={11} color="#fde68a" />
-                      <Text style={styles.vipPerkText} numberOfLines={1}>{p}</Text>
+                      <Text style={styles.vipPerkText} numberOfLines={1}>{t(k)}</Text>
                     </View>
                   ))}
                 </View>
                 {vip ? (
                   <View style={styles.ownedPill}>
                     <Ionicons name="checkmark" size={11} color="#4ade80" />
-                    <Text style={styles.ownedText}>ACTIVE</Text>
+                    <Text style={styles.ownedText}>{t('shop_active')}</Text>
                   </View>
                 ) : (
                   <View style={styles.planRow}>
-                    <Pressable style={styles.planBtn} onPress={() => doBuy(PRODUCTS.VIP_MONTHLY)} disabled={!!busy}>
-                      <LinearGradient colors={['#fef3c7', '#fcd34d']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.planBtnGrad}>
+                    <Pressable
+                      style={[styles.planBtn, !monthlyPrice && styles.btnDisabled]}
+                      onPress={() => doBuy(PRODUCTS.VIP_MONTHLY)}
+                      disabled={!!busy || !monthlyPrice}
+                      accessibilityState={{ disabled: !!busy || !monthlyPrice }}
+                    >
+                      <LinearGradient colors={monthlyPrice ? ['#fef3c7', '#fcd34d'] : ['#475569', '#334155']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.planBtnGrad}>
                         {busy === PRODUCTS.VIP_MONTHLY ? <ActivityIndicator size="small" color="#451a03" /> : (
                           <>
-                            <Text style={styles.planPrice}>{priceOf(PRODUCTS.VIP_MONTHLY)}</Text>
-                            <Text style={styles.planName}>/mo</Text>
+                            <Text style={[styles.planPrice, !monthlyPrice && styles.btnTextDisabled]} numberOfLines={1}>{monthlyPrice || t('shop_unavailable_short')}</Text>
+                            <Text style={[styles.planName, !monthlyPrice && styles.btnTextDisabled]} numberOfLines={1}>{t('shop_vip_monthly_period')}</Text>
                           </>
                         )}
                       </LinearGradient>
                     </Pressable>
-                    <Pressable style={styles.planBtn} onPress={() => doBuy(PRODUCTS.VIP_YEARLY)} disabled={!!busy}>
-                      <LinearGradient colors={['#fde68a', '#f59e0b']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.planBtnGrad}>
+                    <Pressable
+                      style={[styles.planBtn, !yearlyPrice && styles.btnDisabled]}
+                      onPress={() => doBuy(PRODUCTS.VIP_YEARLY)}
+                      disabled={!!busy || !yearlyPrice}
+                      accessibilityState={{ disabled: !!busy || !yearlyPrice }}
+                    >
+                      <LinearGradient colors={yearlyPrice ? ['#fde68a', '#f59e0b'] : ['#475569', '#334155']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.planBtnGrad}>
                         {busy === PRODUCTS.VIP_YEARLY ? <ActivityIndicator size="small" color="#451a03" /> : (
                           <>
-                            <Text style={styles.planPrice}>{priceOf(PRODUCTS.VIP_YEARLY)}</Text>
-                            <Text style={styles.planName}>/yr • SAVE 48%</Text>
+                            <Text style={[styles.planPrice, !yearlyPrice && styles.btnTextDisabled]} numberOfLines={1}>{yearlyPrice || t('shop_unavailable_short')}</Text>
+                            <Text style={[styles.planName, !yearlyPrice && styles.btnTextDisabled]} numberOfLines={1}>
+                              {yearlySaving
+                                ? `${t('shop_vip_yearly_period')} • ${fill(t('shop_save_pct'), { pct: yearlySaving })}`
+                                : t('shop_vip_yearly_period')}
+                            </Text>
                           </>
                         )}
                       </LinearGradient>
@@ -353,19 +400,41 @@ export default function ShopScreen({ onClose }) {
           }
         />
 
-        <Text style={[styles.sectionTitle, { color: tc.textMuted }]}>PERMANENT UPGRADES</Text>
+        {/* Subscription terms + legal links: visible without flipping the card,
+            directly under the VIP plan buttons (App Store Guideline 3.1.2). */}
+        {!vip ? (
+          <View style={styles.subInfo}>
+            <Text style={[styles.subInfoText, { color: tc.textSecondary }]}>
+              {fill(t('shop_sub_terms'), {
+                monthly: monthlyPrice || '-',
+                yearly: yearlyPrice || '-',
+              })}
+            </Text>
+          </View>
+        ) : null}
+        <View style={styles.legalLinks}>
+          <Pressable onPress={() => { haptic('light'); setPolicyTab('terms'); }} hitSlop={8} accessibilityRole="link">
+            <Text style={[styles.legalLink, { color: tc.accent }]}>{t('legal_terms_of_use')}</Text>
+          </Pressable>
+          <Text style={[styles.legalSep, { color: tc.textMuted }]}>•</Text>
+          <Pressable onPress={() => { haptic('light'); setPolicyTab('privacy'); }} hitSlop={8} accessibilityRole="link">
+            <Text style={[styles.legalLink, { color: tc.accent }]}>{t('legal_privacy_policy')}</Text>
+          </Pressable>
+        </View>
+
+        <Text style={[styles.sectionTitle, { color: tc.textMuted }]}>{t('shop_section_permanent')}</Text>
         <View style={styles.grid}>
-          <ProductTile productId={PRODUCTS.INCOME_15X} skinId="income15x" name="1.5× Income" tag="Forever" emoji="📈" last4="0150"
-            backLines={['Permanent +50% on every tap and payout', 'Unlocks the Emerald card skin']}
+          <ProductTile productId={PRODUCTS.INCOME_15X} skinId="income15x" name={t('shop_income15_name')} tag={t('shop_forever')} emoji="📈" last4="0150"
+            backLines={[t('shop_income15_line'), fill(t('shop_unlocks_skin'), { skin: 'Emerald' })]}
             owned={isOwned(PRODUCTS.INCOME_15X)} flipped={flipped === PRODUCTS.INCOME_15X}
             onFlip={() => toggleFlip(PRODUCTS.INCOME_15X)} busy={busy} onBuy={doBuy} />
-          <ProductTile productId={PRODUCTS.INCOME_2X} skinId="income2x" name="2× Income" tag="Forever" emoji="⚡" last4="0200"
-            backLines={['Permanent double income - stacks to 3× with VIP', 'Unlocks the Ultraviolet card skin']}
+          <ProductTile productId={PRODUCTS.INCOME_2X} skinId="income2x" name={t('shop_income2_name')} tag={t('shop_forever')} emoji="⚡" last4="0200"
+            backLines={[t('shop_income2_line'), fill(t('shop_unlocks_skin'), { skin: 'Ultraviolet' })]}
             owned={isOwned(PRODUCTS.INCOME_2X)} flipped={flipped === PRODUCTS.INCOME_2X}
             onFlip={() => toggleFlip(PRODUCTS.INCOME_2X)} busy={busy} onBuy={doBuy} />
         </View>
 
-        <Text style={[styles.sectionTitle, { color: tc.textMuted }]}>BUNDLE</Text>
+        <Text style={[styles.sectionTitle, { color: tc.textMuted }]}>{t('shop_section_bundle')}</Text>
         <FlipCard
           flipped={flipped === PRODUCTS.FOUNDERS}
           onFlip={() => toggleFlip(PRODUCTS.FOUNDERS)}
@@ -374,9 +443,9 @@ export default function ShopScreen({ onClose }) {
             <CardFace colors={CARD_SKINS.founders.colors} brand="VOIDPAY" last4="0001" holder="FOUNDING MEMBER" big>
               <View style={styles.faceMid}>
                 <Text style={styles.faceEmoji}>🚀</Text>
-                <Text style={styles.faceName}>Founders Bundle</Text>
+                <Text style={styles.faceName}>{t('shop_founders_name')}</Text>
                 <View style={styles.faceTagRow}>
-                  <Text style={styles.faceTag}>Dealership + cash + accountant</Text>
+                  <Text style={styles.faceTag}>{t('shop_founders_tag')}</Text>
                   <Ionicons name="sync" size={8} color="rgba(255,255,255,0.35)" />
                 </View>
               </View>
@@ -389,10 +458,10 @@ export default function ShopScreen({ onClose }) {
             <CardBack colors={['#0f172a', '#1e293b']}>
               <BackContent
                 lines={[
-                  'Vehicle Dealership - open & earning now',
-                  `${formatMoney(FOUNDERS_CASH_GRANT)} cash`,
-                  'Personal Accountant auto-pays tax',
-                  'Unlocks the Ember card skin',
+                  t('shop_founders_line_dealership'),
+                  fill(t('shop_founders_line_cash'), { amount: formatMoney(FOUNDERS_CASH_GRANT) }),
+                  t('shop_founders_line_accountant'),
+                  fill(t('shop_unlocks_skin'), { skin: 'Ember' }),
                 ]}
                 productId={PRODUCTS.FOUNDERS}
                 owned={isOwned(PRODUCTS.FOUNDERS)}
@@ -403,23 +472,26 @@ export default function ShopScreen({ onClose }) {
           }
         />
 
-        <Text style={[styles.sectionTitle, { color: tc.textMuted }]}>CASH PACKS</Text>
+        <Text style={[styles.sectionTitle, { color: tc.textMuted }]}>{t('shop_section_cash')}</Text>
         <View style={styles.grid}>
           {[
-            { productId: PRODUCTS.CASH_1, skinId: 'cash1', name: 'Pocket Cash', emoji: '💵', desc: 'straight to your balance', skinName: 'Slate', last4: '0025' },
-            { productId: PRODUCTS.CASH_2, skinId: 'cash2', name: 'Seed Money', emoji: '💰', desc: '- dealership territory', skinName: 'Glacier', last4: '0100' },
-            { productId: PRODUCTS.CASH_3, skinId: 'cash3', name: 'Legacy Key', emoji: '🔑', desc: '- unlocks the Legacy tab', skinName: 'Royal', last4: '0500' },
-            { productId: PRODUCTS.CASH_4, skinId: 'cash4', name: 'Tycoon', emoji: '👑', desc: '- buys the bank outright', skinName: 'Crimson', last4: '2500' },
+            { productId: PRODUCTS.CASH_1, skinId: 'cash1', nameKey: 'shop_cash1_name', emoji: '💵', descKey: 'shop_cash1_desc', skinName: 'Slate', last4: '0025' },
+            { productId: PRODUCTS.CASH_2, skinId: 'cash2', nameKey: 'shop_cash2_name', emoji: '💰', descKey: 'shop_cash2_desc', skinName: 'Glacier', last4: '0100' },
+            { productId: PRODUCTS.CASH_3, skinId: 'cash3', nameKey: 'shop_cash3_name', emoji: '🔑', descKey: 'shop_cash3_desc', skinName: 'Royal', last4: '0500' },
+            { productId: PRODUCTS.CASH_4, skinId: 'cash4', nameKey: 'shop_cash4_name', emoji: '👑', descKey: 'shop_cash4_desc', skinName: 'Crimson', last4: '2500' },
           ].map((p) => (
             <ProductTile
               key={p.productId}
               productId={p.productId}
               skinId={p.skinId}
-              name={p.name}
+              name={t(p.nameKey)}
               tag={formatMoney(CASH_PACK_GRANTS[p.productId])}
               emoji={p.emoji}
               last4={p.last4}
-              backLines={[`${formatMoney(CASH_PACK_GRANTS[p.productId])} ${p.desc}`, `Unlocks the ${p.skinName} card skin`]}
+              backLines={[
+                fill(t('shop_cash_line'), { amount: formatMoney(CASH_PACK_GRANTS[p.productId]), desc: t(p.descKey) }),
+                fill(t('shop_unlocks_skin'), { skin: p.skinName }),
+              ]}
               owned={false}
               flipped={flipped === p.productId}
               onFlip={() => toggleFlip(p.productId)}
@@ -432,15 +504,15 @@ export default function ShopScreen({ onClose }) {
         <Pressable style={[styles.restoreBtn, { borderColor: tc.surfaceBorder }]} onPress={doRestore} disabled={!!busy}>
           {busy === 'restore'
             ? <ActivityIndicator size="small" color={tc.textMuted} />
-            : <Text style={[styles.restoreText, { color: tc.textMuted }]}>Restore Purchases</Text>}
+            : <Text style={[styles.restoreText, { color: tc.textMuted }]}>{t('shop_restore')}</Text>}
         </Pressable>
-
-        <Text style={[styles.legal, { color: tc.textMuted }]}>
-          Subscriptions renew automatically until cancelled. Manage or cancel in
-          Settings {'>'} Apple ID {'>'} Subscriptions. See Settings {'>'} Legal for
-          our Privacy Policy and Terms.
-        </Text>
       </ScrollView>
+
+      <PoliciesScreen
+        visible={!!policyTab}
+        initialTab={policyTab || 'privacy'}
+        onClose={() => setPolicyTab(null)}
+      />
     </View>
   );
 }
@@ -518,5 +590,17 @@ const styles = StyleSheet.create({
 
   restoreBtn: { borderWidth: 1, borderRadius: 12, paddingVertical: 13, alignItems: 'center', marginTop: 22 },
   restoreText: { fontSize: 14, fontWeight: '700' },
-  legal: { fontSize: 11, lineHeight: 16, textAlign: 'center', marginTop: 14, marginHorizontal: 8 },
+  btnDisabled: { opacity: 0.6 },
+  btnTextDisabled: { color: '#e2e8f0' },
+  storeNotice: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: 8,
+    borderWidth: 1, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14, marginBottom: 12,
+  },
+  storeNoticeText: { fontSize: 13, fontWeight: '600', flexShrink: 1 },
+  storeRetry: { fontSize: 13, fontWeight: '800' },
+  subInfo: { marginTop: 10, marginHorizontal: 4 },
+  subInfoText: { fontSize: 11, lineHeight: 16, textAlign: 'center' },
+  legalLinks: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: 8, marginTop: 8 },
+  legalLink: { fontSize: 13, fontWeight: '700', textDecorationLine: 'underline', paddingVertical: 4 },
+  legalSep: { fontSize: 13 },
 });

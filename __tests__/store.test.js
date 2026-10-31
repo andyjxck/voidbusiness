@@ -35,6 +35,7 @@ beforeEach(() => {
   mockIap.available = [];
   mockIap.listener = null;
   jest.clearAllMocks();
+  mockIap.fetchProducts.mockImplementation(async ({ skus }) => skus.map((id) => ({ id, displayPrice: '$1.99', price: 1.99 })));
 });
 
 describe('store launch gating', () => {
@@ -90,5 +91,29 @@ describe('store launch gating', () => {
     const store = freshStore();
     expect(store.devGrant).toBeUndefined();
     expect(store.devClearEntitlements).toBeUndefined();
+  });
+});
+
+describe('yearlySavingPercent', () => {
+  const { yearlySavingPercent } = require('../src/data/store');
+
+  it('computes the saving from the real StoreKit prices', () => {
+    expect(yearlySavingPercent({ price: 7.99, currency: 'GBP' }, { price: 49.99, currency: 'GBP' })).toBe(47);
+    expect(yearlySavingPercent({ price: 10, currency: 'USD' }, { price: 60, currency: 'USD' })).toBe(50);
+  });
+
+  it('hides the saving when it cannot be shown honestly', () => {
+    expect(yearlySavingPercent(null, { price: 49.99 })).toBeNull();
+    expect(yearlySavingPercent({ price: 7.99 }, null)).toBeNull();
+    expect(yearlySavingPercent({ price: 0 }, { price: 49.99 })).toBeNull();
+    expect(yearlySavingPercent({ price: 'abc' }, { price: 49.99 })).toBeNull();
+    expect(yearlySavingPercent({ price: 7.99, currency: 'GBP' }, { price: 49.99, currency: 'USD' })).toBeNull();
+    expect(yearlySavingPercent({ price: 5, currency: 'USD' }, { price: 60, currency: 'USD' })).toBeNull();
+  });
+
+  it('exposes the products status in the snapshot', async () => {
+    const store = freshStore();
+    await store.initStore();
+    expect(store.getStoreSnapshot().productsStatus).toBe('ready');
   });
 });
