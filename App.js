@@ -38,8 +38,6 @@ import {
   setGrantHandler,
   subscribeStore,
   hasAccountant,
-  needsFoundersDealership,
-  markFoundersDealershipIssued,
   resetFoundersDealershipGrant,
   isVip,
   scaleDuration,
@@ -49,6 +47,7 @@ import {
 import ShopScreen from './src/screens/ShopScreen';
 import { restoreCloudIfNewer, saveToCloud, GAME_KEYS } from './src/data/cloudsave';
 import { runMigrations } from './src/data/migrations';
+import { issueFoundersDealership } from './src/data/foundersGrant';
 import { LEGACY_UNLOCK_AT, hasReachedLegacy } from './src/data/legacyUnlock';
 import { initAds, showRewardedAd } from './src/data/ads';
 import { loadSettings } from './src/data/settings';
@@ -280,14 +279,9 @@ function AppContent() {
       // Founders Bundle restored on a fresh install: issue the ready-to-run
       // dealership once (tracked in the entitlement store, not the business,
       // so selling it can't re-trigger the grant).
-      if (needsFoundersDealership()) {
-        const founders = createFoundersDealership();
-        if (founders) {
-          bs = [...bs, { ...founders, foundersDealership: true }];
-          markFoundersDealershipIssued();
-          recordBusinessBought();
-        }
-      }
+      const foundersGrant = issueFoundersDealership(bs);
+      bs = foundersGrant.businesses;
+      if (foundersGrant.issued) recordBusinessBought();
 
       const boost = safeInt(entries.tapGameBusinessBoost, 0);
       // Never trust a future timestamp: a clock set back would otherwise
@@ -491,16 +485,12 @@ function AppContent() {
 
   const loadedRef = useRef(false);
   const issueFoundersDealershipIfNeeded = useCallback(() => {
-    if (!loadedRef.current || !needsFoundersDealership()) return;
-    if (ownedBusinessesRef.current.some((b) => b.foundersDealership)) {
-      markFoundersDealershipIssued();
-      return;
-    }
-    const biz = createFoundersDealership();
-    if (!biz) return;
-    markFoundersDealershipIssued();
+    if (!loadedRef.current) return;
+    const res = issueFoundersDealership(ownedBusinessesRef.current);
+    if (!res.issued) return;
     recordBusinessBought();
-    setOwnedBusinesses((prev) => (prev.some((b) => b.foundersDealership) ? prev : [...prev, { ...biz, foundersDealership: true }]));
+    const dealership = res.businesses[res.businesses.length - 1];
+    setOwnedBusinesses((prev) => (prev.some((b) => b.foundersDealership) ? prev : [...prev, dealership]));
   }, []);
 
   // Store: apply purchase grants to game state + re-render on entitlement change
