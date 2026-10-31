@@ -30,10 +30,10 @@ export const CASH_PACK_GRANTS = {
 export const FOUNDERS_CASH_GRANT = 100000000;
 
 // ─── Home-card skins ─────────────────────────────────────────────────────────
-// Every purchase unlocks a themed skin for the TAPPAY balance card. 'default'
+// Every purchase unlocks a themed skin for the VOIDPAY balance card. 'default'
 // is always available; 'vip' only while the subscription is active.
 export const CARD_SKINS = {
-  default:   { name: 'TAPPAY',      colors: ['#1e1b4b', '#312e81', '#1e3a5f', '#0c4a6e'] },
+  default:   { name: 'VOIDPAY',     colors: ['#1e1b4b', '#312e81', '#1e3a5f', '#0c4a6e'] },
   vip:       { name: 'VIP Gold',    colors: ['#713f12', '#a16207', '#ca8a04', '#854d0e'] },
   income15x: { name: 'Emerald',     colors: ['#022c22', '#064e3b', '#047857', '#022c22'] },
   income2x:  { name: 'Ultraviolet', colors: ['#2e1065', '#4c1d95', '#7c3aed', '#2e1065'] },

@@ -154,7 +154,7 @@ const BANK_UPGRADE_TITLES = [
   'ut_regional_expansion', 'ut_national_expansion', 'ut_marketing_campaign', 'ut_brand_trust', 'ut_premium_service',
   'ut_digital_infrastructure', 'ut_mobile_platform', 'ut_ai_integration', 'ut_global_network', 'ut_financial_empire',
   'ut_sovereign_wealth', 'ut_global_custody', 'ut_private_equity', 'ut_mega_fund', 'ut_banking_dynasty',
-  'ut_central_bank_ties', 'ut_world_bank_seat', 'ut_reserve_status', 'ut_financial_dynasty', 'ut_eternal_bank',
+  'ut_central_bank_ties', 'ut_void_monetary_seat', 'ut_reserve_status', 'ut_financial_dynasty', 'ut_eternal_bank',
 ];
 
 const MOVIESTUDIO_UPGRADE_TITLES = [

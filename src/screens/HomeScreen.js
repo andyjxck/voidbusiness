@@ -20,7 +20,8 @@ const { width } = Dimensions.get('window');
 const BOOST_MULTIPLIER = 7;
 const BOOST_DURATION = 60;
 
-const NEWS_SOURCES = ['Bloomberg', 'Reuters', 'CNBC', 'WSJ', 'MarketWatch', 'Barrons'];
+// Invented outlets only - never attribute game headlines to real media.
+const NEWS_SOURCES = ['Void Wire', 'The Ledger', 'Ticker Tribune', 'Bullhorn Daily', 'Tycoon Times', 'Coinside Report'];
 
 const GAME_EVENTS_POOL = [
   { ticker: 'TAP', headlineKey: 'event_tap_boost', source: 'GameFeed', change: 100, category: 'event', type: 'boost' },
@@ -662,7 +663,7 @@ export default function HomeScreen({
               <Ionicons name="wifi" size={16} color="rgba(255,255,255,0.25)" style={{ transform: [{ rotate: '90deg' }] }} />
             </View>
             <View style={styles.cardBrandRow}>
-              <Text style={styles.cardBrand}>{isVip ? 'TAPPAY VIP' : t('brand_tappay')}</Text>
+              <Text style={styles.cardBrand}>{isVip ? 'VOIDPAY VIP' : t('brand_tappay')}</Text>
               <Pressable
                 onPress={(e) => { e.stopPropagation && e.stopPropagation(); Haptics.selectionAsync(); setShowSkins((s) => !s); }}
                 hitSlop={10}
@@ -728,8 +729,7 @@ export default function HomeScreen({
             )}
             <View style={styles.cardRightFooter}>
               <View style={styles.cardLogo}>
-                <View style={styles.cardLogoCircle1} />
-                <View style={styles.cardLogoCircle2} />
+                <View style={styles.cardLogoRing} />
               </View>
               {totalPending > 0 ? (
                 <>
@@ -1162,18 +1162,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  cardLogoCircle1: {
+  cardLogoRing: {
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: 'rgba(255,80,80,0.5)',
-    marginRight: -8,
-  },
-  cardLogoCircle2: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: 'rgba(255,180,40,0.5)',
+    borderWidth: 4,
+    borderColor: 'rgba(255,255,255,0.55)',
+    backgroundColor: 'rgba(0,0,0,0.3)',
   },
   cardRightFooter: {
     alignItems: 'flex-end',

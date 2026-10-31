@@ -177,3 +177,46 @@ describe('getChangePercent', () => {
     expect(getChangePercent(90, 100)).toBe(-10);
   });
 });
+
+describe('asset names (App Review 5.2.1)', () => {
+  // Saves store holdings by asset id, so these ids must never change even
+  // though the display names and tickers are invented.
+  const SAVED_IDS = [
+    'st_appl', 'st_goog', 'st_msft', 'st_nvda', 'st_avgo', 'st_amd', 'st_intl', 'st_orcl',
+    'st_crm', 'st_adbe', 'st_ibm', 'st_cisc', 'st_meta', 'st_nflx', 'st_spot', 'st_roku',
+    'st_pint', 'st_snap', 'st_twtr', 'st_reddit', 'st_amzn', 'st_shop', 'st_ebay', 'st_etst',
+    'st_wmt', 'st_tgt', 'st_cost', 'st_hd', 'st_tesl', 'st_ford', 'st_gm', 'st_rivn',
+    'st_lcid', 'st_nio', 'st_jpm', 'st_bac', 'st_gs', 'st_ms', 'st_visa', 'st_mc',
+    'st_pypl', 'st_sq', 'st_xom', 'st_cvx', 'st_bp', 'st_shell', 'st_jnj', 'st_pfe',
+    'st_mrk', 'st_abt', 'st_lly', 'st_dis', 'st_ea', 'st_atvi', 'st_ttwo', 'st_roblox',
+    'st_unity', 'st_ko', 'st_pep', 'st_mcd', 'st_sbux', 'st_nke', 'st_ba', 'st_lmt',
+    'st_rtx', 'st_aal', 'st_ual', 'st_dal', 'st_uber', 'st_lyft', 'st_abnb', 'st_t',
+    'st_vz', 'st_tmus', 'st_ge', 'st_cat', 'st_hon', 'cr_btc', 'cr_eth', 'cr_sol',
+    'cr_bnb', 'cr_xrp', 'cr_ada', 'cr_doge', 'cr_avax', 'cr_link', 'cr_dot', 'cr_matic',
+    'cr_shib', 'cr_ltc', 'cr_bch', 'cr_uni', 'cr_atom', 'cr_near', 'cr_apt', 'cr_fil',
+    'cr_hbar', 'cr_algo', 'cr_ftm', 'cr_inj', 'cr_tia', 'cr_sei', 'cr_sui', 'cr_pepe',
+    'cr_wif', 'cr_bonk', 'cr_floki',
+  ];
+
+  it('keeps every legacy stock and coin id', () => {
+    const ids = new Set([...STOCKS, ...CRYPTO].map((a) => a.id));
+    for (const id of SAVED_IDS) expect(ids.has(id)).toBe(true);
+    expect(STOCKS.length + CRYPTO.length).toBe(SAVED_IDS.length);
+  });
+
+  it('uses unique tickers and names', () => {
+    const all = [...STOCKS, ...CRYPTO];
+    expect(new Set(all.map((a) => a.ticker)).size).toBe(all.length);
+    expect(new Set(all.map((a) => a.name)).size).toBe(all.length);
+  });
+
+  it('does not use real tickers or brand-like names', () => {
+    const REAL_TICKERS = ['AAPL', 'GOOG', 'GOOGL', 'MSFT', 'NVDA', 'AMZN', 'TSLA', 'META', 'NFLX', 'JPM', 'GS', 'BTC', 'ETH', 'SOL', 'DOGE', 'XRP', 'BNB', 'ADA', 'SHIB', 'PEPE'];
+    const REAL_WORDS = /apple|appl|goog|microsoft|microhard|nvid|amazon|tesla|tezla|netflix|bitco|ethere|doge|shiba|goldman|morgan|visa|master|paypal|disney|boeing|uber|lyft|airbnb|nike|starbuck|coca|pepsi/i;
+    for (const a of [...STOCKS, ...CRYPTO]) {
+      expect(REAL_TICKERS).not.toContain(a.ticker);
+      expect(a.name).not.toMatch(REAL_WORDS);
+      expect(a.emoji).not.toBe('\u{1F34E}');
+    }
+  });
+});

@@ -73,7 +73,7 @@ export const COLLECTION_ITEMS = {
     { id: 'pendulum', get name() { return t('dn_pendulum_royale'); }, nameKey: 'item_pendulum', price: 7000000 },
     { id: 'stardial', get name() { return t('dn_stardial_skeleton'); }, nameKey: 'item_stardial', price: 3000000 },
     { id: 'luminous', get name() { return t('dn_luminous_grand'); }, nameKey: 'item_luminous', price: 1500000 },
-    { id: 'zenith', get name() { return t('dn_zenith_reverso'); }, nameKey: 'item_zenith', price: 750000 },
+    { id: 'zenith', get name() { return t('dn_zephyr_flipdial'); }, nameKey: 'item_zenith', price: 750000 },
     { id: 'nova', get name() { return t('dn_nova_dress_watch'); }, nameKey: 'item_nova', price: 350000 },
     { id: 'orion', get name() { return t('dn_orion_tourbillon'); }, nameKey: 'item_orion', price: 150000 },
   ],

@@ -66,12 +66,11 @@ function CardChip({ small }) {
   );
 }
 
-// Overlapping-circle network logo, like the real schemes.
+// Network mark: a single "void" ring (deliberately unlike any real card scheme).
 function CardLogo({ size = 18 }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-      <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: 'rgba(235,75,55,0.9)' }} />
-      <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: 'rgba(250,190,70,0.85)', marginLeft: -size * 0.42 }} />
+      <View style={{ width: size, height: size, borderRadius: size / 2, borderWidth: Math.max(2, size * 0.2), borderColor: 'rgba(255,255,255,0.8)', backgroundColor: 'rgba(0,0,0,0.35)' }} />
     </View>
   );
 }
@@ -193,7 +192,7 @@ function ProductTile({ productId, name, tag, backLines, emoji, skinId, last4, ow
         onFlip={onFlip}
         height={styles.tile.height}
         front={
-          <CardFace colors={skin.colors} brand="TAPPAY" last4={last4} holder="VOID BUSINESS">
+          <CardFace colors={skin.colors} brand="VOIDPAY" last4={last4} holder="VOID BUSINESS">
             <View style={styles.faceMid}>
               <Text style={styles.faceEmoji}>{emoji}</Text>
               <Text style={styles.faceName} numberOfLines={1}>{name}</Text>
@@ -299,7 +298,7 @@ export default function ShopScreen({ onClose }) {
           onFlip={() => toggleFlip('vip')}
           height={styles.vipCard.height}
           front={
-            <CardFace colors={CARD_SKINS.vip.colors} brand="TAPPAY VIP" last4="8888" holder="VOID MEMBER" big style={styles.vipFace}>
+            <CardFace colors={CARD_SKINS.vip.colors} brand="VOIDPAY VIP" last4="8888" holder="VOID MEMBER" big style={styles.vipFace}>
               <View style={styles.vipMid}>
                 <Ionicons name="diamond" size={26} color="#fde68a" />
                 <Text style={styles.vipName}>VIP</Text>
@@ -372,7 +371,7 @@ export default function ShopScreen({ onClose }) {
           onFlip={() => toggleFlip(PRODUCTS.FOUNDERS)}
           height={styles.wideCard.height}
           front={
-            <CardFace colors={CARD_SKINS.founders.colors} brand="TAPPAY" last4="0001" holder="FOUNDING MEMBER" big>
+            <CardFace colors={CARD_SKINS.founders.colors} brand="VOIDPAY" last4="0001" holder="FOUNDING MEMBER" big>
               <View style={styles.faceMid}>
                 <Text style={styles.faceEmoji}>🚀</Text>
                 <Text style={styles.faceName}>Founders Bundle</Text>
