@@ -2428,6 +2428,7 @@ item_spirits: "Rare Spirits",
     shop_restore_done_msg: 'Your purchases have been checked and restored where possible.',
     shop_restore_failed: 'Restore failed',
     shop_restore_failed_msg: 'Could not reach the App Store. Try again later.',
+    ad_loading: 'Loading ad…',
   },
 
   es: {

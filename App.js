@@ -12,6 +12,7 @@ import BusinessScreen from './src/screens/BusinessScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import FloatingNavBar from './src/components/FloatingNavBar';
 import AppShell from './src/components/AppShell';
+import AdLoadingOverlay from './src/components/AdLoadingOverlay';
 import ErrorBoundary from './src/components/ErrorBoundary';
 import {
   createInitialMarketState,
@@ -796,6 +797,7 @@ function AppContent() {
         onTabChange={setActiveTab}
         showProgression={legacyTabVisible}
       />
+      <AdLoadingOverlay />
       </AppShell>
     </View>
   );

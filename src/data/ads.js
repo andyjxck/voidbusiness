@@ -48,13 +48,37 @@ let adLoaded = false;
 let pending = null;
 let showing = false;
 
+// "Waiting for an ad" state for the loading overlay (AdLoadingOverlay.js).
+const waitListeners = new Set();
+function setPending(next) {
+  const was = !!pending;
+  pending = next;
+  if (was !== !!pending) waitListeners.forEach((cb) => cb(!!pending));
+}
+export function isWaitingForAd() {
+  return !!pending;
+}
+export function subscribeAdWaiting(cb) {
+  waitListeners.add(cb);
+  return () => waitListeners.delete(cb);
+}
+// The player gave up waiting: drop the queued request, no reward, no alert.
+export function cancelPendingAd() {
+  const p = pending;
+  if (!p) return;
+  if (p.timeout) clearTimeout(p.timeout);
+  setPending(null);
+}
+
 export function initAds() {
   if (!mobileAds || initialized) return;
   initialized = true;
   mobileAds()
     .initialize()
     .then(() => {
-      preloadRewardedAd();
+      // VIPs get rewards without ads, so don't request one for them. The SDK
+      // itself still starts at launch (as the privacy policy says).
+      if (!isVip()) preloadRewardedAd();
     })
     .catch((e) => {
       if (IS_DEV) console.warn('[ads] mobileAds initialize failed:', e && e.message);
@@ -69,7 +93,7 @@ function notifyNoAd() {
 function resolvePending() {
   if (pending) {
     const { onReward, timeout } = pending;
-    pending = null;
+    setPending(null);
     if (timeout) clearTimeout(timeout);
     presentAd(onReward);
   }
@@ -100,12 +124,12 @@ function preloadRewardedAd() {
     }
     // Fail any queued request now rather than letting it hit the 10s timeout.
     const p = pending;
-    pending = null;
+    setPending(null);
     if (p && p.timeout) clearTimeout(p.timeout);
     if (p) notifyNoAd();
     // Back off before retrying so a no-fill response doesn't hammer AdMob.
     setTimeout(() => {
-      if (!currentAd && initialized) preloadRewardedAd();
+      if (!currentAd && initialized && !isVip()) preloadRewardedAd();
     }, 30000);
   });
   ad.load();
@@ -131,8 +155,8 @@ export function showRewardedAd(onReward) {
       notifyNoAd();
       return;
     }
-    const timeout = setTimeout(() => { pending = null; notifyNoAd(); }, 10000);
-    pending = { onReward, timeout };
+    const timeout = setTimeout(() => { setPending(null); notifyNoAd(); }, 10000);
+    setPending({ onReward, timeout });
     return;
   }
   presentAd(onReward);
@@ -158,7 +182,7 @@ function presentAd(onReward) {
     unsubClosed();
     unsubError();
     showing = false;
-    preloadRewardedAd();
+    if (!isVip()) preloadRewardedAd();
   };
   const watchdog = setTimeout(finish, SHOW_WATCHDOG_MS);
   unsubReward = ad.addAdEventListener(RewardedAdEventType.EARNED_REWARD, () => {
