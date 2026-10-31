@@ -1,12 +1,12 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { View, ScrollView, Pressable, StyleSheet, Modal, Dimensions } from 'react-native';
+import { View, ScrollView, Pressable, StyleSheet, Modal } from 'react-native';
+import { useContentWidth } from '../data/layout';
 import Text, { useLanguage } from '../components/AppText';
 import { t, tf, tBusinessName, tBusinessCategory, tBusinessSubCategory } from '../data/i18n';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from '../data/hapticsProxy';
 import { showRewardedAd } from '../data/ads';
-const { width } = Dimensions.get('window');
 
 import { formatMoney } from '../data/market';
 import {
@@ -57,6 +57,7 @@ const INDUSTRY_COLORS = {
 const getIndustryColor = (type) => INDUSTRY_COLORS[type] || '#a78bfa';
 
 export default function BusinessScreen({ money, ownedBusinesses, businessBoostExpiresAt, onChange, onActivateBoost }) {
+  const contentW = useContentWidth();
   useLanguage();
   const [startModal, setStartModal] = useState(false);
   const [detailId, setDetailId] = useState(null);
@@ -363,7 +364,7 @@ export default function BusinessScreen({ money, ownedBusinesses, businessBoostEx
             colors={['#1e1b4b', '#312e81', '#1e3a5f', '#0c4a6e']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={styles.balanceCard}
+            style={[styles.balanceCard, { width: contentW - 32 }]}
           >
             <LinearGradient
               colors={['rgba(255,255,255,0.08)', 'transparent', 'rgba(255,255,255,0.04)']}
@@ -752,7 +753,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   balanceCard: {
-    width: width - 32,
     height: 195,
     borderRadius: 20,
     padding: 18,

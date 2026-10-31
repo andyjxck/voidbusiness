@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect, useLayoutEffect, useMemo } from 'react';
-import { StyleSheet, View, Pressable, Animated, Dimensions, ScrollView, Modal, Easing, Platform, useWindowDimensions } from 'react-native';
+import { StyleSheet, View, Pressable, Animated, ScrollView, Modal, Easing, Platform } from 'react-native';
+import { useContentWidth } from '../data/layout';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Text, { useLanguage, useAppSettings, useThemeColors } from '../components/AppText';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,7 +16,6 @@ import { t, tf, tJobTitle, tJobDesc, tRealEstate, getCurrentLanguage } from '../
 import { webModalOverlay, webModalSheet } from '../components/webModal';
 import { realWindowWidth, WEB_SIDEBAR_MIN_WIDTH } from '../data/webDims';
 
-const { width } = Dimensions.get('window');
 
 const BOOST_MULTIPLIER = 7;
 const BOOST_DURATION = 60;
@@ -135,7 +135,7 @@ export default function HomeScreen({
   // FloatingNavBar's top edge sits at ~insets.bottom + 60px (6px offset + ~54px
   // bar). Content must clear that plus breathing room, not a fixed 90.
   // On wide web the sidebar replaces the pill, so only a small gap is needed.
-  useWindowDimensions(); // re-render on browser resize for the web gate below
+  const contentW = useContentWidth(); // also re-renders on resize/rotation (web gate below)
   const navClearance = Platform.OS === 'web' && realWindowWidth() >= WEB_SIDEBAR_MIN_WIDTH
     ? 24
     : Math.max(insets.bottom, 12) + 74;
@@ -647,7 +647,7 @@ export default function HomeScreen({
           colors={cardSkin.colors}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.card}
+          style={[styles.card, { width: contentW - 48 }]}
         >
           {/* Shine overlay */}
           <LinearGradient
@@ -1026,7 +1026,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   card: {
-    width: width - 48,
     height: 220,
     borderRadius: 20,
     padding: 22,

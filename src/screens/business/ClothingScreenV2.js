@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Pressable, ScrollView, StyleSheet, Dimensions, Image } from 'react-native';
+import { View, Pressable, ScrollView, StyleSheet, Image } from 'react-native';
+import { useContentWidth } from '../../data/layout';
 import Text, { useLanguage } from '../../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from '../../data/hapticsProxy';
@@ -81,7 +82,7 @@ export default function ClothingScreenV2({ business, money, onBack, onOpenSettin
   const [selectedMapPin, setSelectedMapPin] = useState(null);
   const [buySupplyTarget, setBuySupplyTarget] = useState(null);
   const [isMapTouching, setIsMapTouching] = useState(false);
-  const screenW = Dimensions.get('window').width;
+  const screenW = useContentWidth();
   const MAP_VIEW_H = 380;
   const mapAreaW = screenW - 32;
   const fitZoom = Math.min(mapAreaW / CITY_MAP.width, MAP_VIEW_H / CITY_MAP.height);

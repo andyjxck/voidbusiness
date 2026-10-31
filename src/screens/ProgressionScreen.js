@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { StyleSheet, View, Pressable, ScrollView, Dimensions } from 'react-native';
+import { StyleSheet, View, Pressable, ScrollView } from 'react-native';
+import { useContentWidth } from '../data/layout';
 import Text, { useLanguage } from '../components/AppText';
 import { t, tf } from '../data/i18n';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -34,11 +35,12 @@ import CollectionScreen from './legacy/CollectionScreen';
 import EstatesScreen from './legacy/EstatesScreen';
 import EstatePortfolioScreen from './legacy/EstatePortfolioScreen';
 
-const SCREEN_W = Dimensions.get('window').width;
 
 const PREMIUM_IDS = ['estates', 'space', 'domains'];
 
 export default function ProgressionScreen({ money, setMoney, progression, onProgressionChange }) {
+  const contentW = useContentWidth();
+  const tileW = (contentW - 32 - 18) / 3;
   useLanguage();
 
   const CHANNELS = [
@@ -315,7 +317,7 @@ export default function ProgressionScreen({ money, setMoney, progression, onProg
     return (
       <Pressable
         key={cat.id}
-        style={[styles.tile, { borderColor: complete ? `${cat.color}66` : 'rgba(255,255,255,0.07)' }]}
+        style={[styles.tile, { width: tileW, borderColor: complete ? `${cat.color}66` : 'rgba(255,255,255,0.07)' }]}
         onPress={() => go('collection', cat.id)}
       >
         <View style={[styles.tileIcon, { backgroundColor: `${cat.color}1f` }]}>
@@ -546,7 +548,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   tile: {
-    width: (SCREEN_W - 32 - 18) / 3,
     backgroundColor: 'rgba(255,255,255,0.035)',
     borderRadius: 16,
     borderWidth: 1.5,

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { View, Pressable, ScrollView, StyleSheet, Dimensions, Image } from 'react-native';
+import { View, Pressable, ScrollView, StyleSheet, Image } from 'react-native';
 import Text from '../../components/AppText';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,7 +19,6 @@ import {
 import { ScreenHeader, CashPill, StatStrip, EmptyState, ESTATE_IMAGES, styles as ui } from './LegacyUI';
 import { t, tf } from '../../data/i18n';
 
-const SCREEN_W = Dimensions.get('window').width;
 const GOLD = '#fbbf24';
 
 // Each estate gets its own palette so scrolling the listings feels like

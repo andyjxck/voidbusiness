@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { View, ScrollView, Pressable, StyleSheet, Animated, Dimensions, Image } from 'react-native';
+import { View, ScrollView, Pressable, StyleSheet, Animated, Image } from 'react-native';
+import { useContentWidth } from '../../data/layout';
 import Text, { useLanguage } from '../../components/AppText';
 import Svg, { G, Polygon, Text as SvgText, Circle, Path, Rect } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
@@ -82,7 +83,7 @@ const BUS_IMAGES = {
 export default function BusServiceScreen({ business, money, boostExpiresAt, onBack, onOpenSettings, onBusUpdate }) {
   useLanguage();
   const [tab, setTab] = useState('fleet');
-  const screenW = Dimensions.get('window').width;
+  const screenW = useContentWidth();
   const MAP_VIEW_H = 420;
   const fitZoom = Math.min((screenW - 32) / CITY_MAP.width, MAP_VIEW_H / CITY_MAP.height);
   const mapAreaW = screenW - 32;

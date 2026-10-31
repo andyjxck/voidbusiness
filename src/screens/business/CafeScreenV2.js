@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Pressable, ScrollView, StyleSheet, Dimensions, Image } from 'react-native';
+import { View, Pressable, ScrollView, StyleSheet, Image, useWindowDimensions } from 'react-native';
+import { useContentWidth } from '../../data/layout';
 import Text, { useLanguage } from '../../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from '../../data/hapticsProxy';
@@ -96,8 +97,11 @@ export default function CafeScreenV2({ business, money, onBack, onOpenSettings, 
   const openBranchBtnRef = useRef(null);
 
   // Map state
-  const screenW = Dimensions.get('window').width;
-  const screenH = Dimensions.get('window').height;
+  const screenW = useContentWidth();
+  const { width: windowW, height: screenH } = useWindowDimensions();
+  // measureInWindow is window-relative; on iPad the screen sits in a centered
+  // column, so shift the tutorial spotlight into the column's coordinates.
+  const columnOffsetX = (windowW - screenW) / 2;
   const MAP_VIEW_H = 380;
   const mapAreaW = screenW - 32;
   const fitZoom = Math.min(mapAreaW / CITY_MAP.width, MAP_VIEW_H / CITY_MAP.height);
@@ -1502,7 +1506,7 @@ export default function CafeScreenV2({ business, money, onBack, onOpenSettings, 
 
         const pad = 8;
         const rect = {
-          x: spotlightRect.x - pad,
+          x: spotlightRect.x - columnOffsetX - pad,
           y: spotlightRect.y - pad,
           width: spotlightRect.width + pad * 2,
           height: spotlightRect.height + pad * 2,

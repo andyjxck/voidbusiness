@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { View, ScrollView, Pressable, StyleSheet, Dimensions, Image } from 'react-native';
+import { View, ScrollView, Pressable, StyleSheet, Image } from 'react-native';
+import { useContentWidth } from '../../data/layout';
 import Text, { useLanguage } from '../../components/AppText';
 import Svg, { G, Polygon, Text as SvgText, Circle, Path, Rect } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
@@ -83,7 +84,6 @@ import {
 } from '../../data/businesses';
 import { formatMoney } from '../../data/market';
 
-const { width: screenW } = Dimensions.get('window');
 
 const polygonPoints = (polyStr) => polyStr.split(' ').map((pt) => pt.split(',').map(Number));
 const polygonCentroid = (polyStr) => {
@@ -103,6 +103,7 @@ export default function CourierServiceScreen({ business, money, boostExpiresAt, 
   const [showTeamRoster, setShowTeamRoster] = useState(false);
   // Map state
   const MAP_VIEW_H = 420;
+  const screenW = useContentWidth();
   const mapAreaW = screenW - 32;
   const fitZoom = Math.min(mapAreaW / CITY_MAP.width, MAP_VIEW_H / CITY_MAP.height);
   const initialZoom = fitZoom * 1.3;
@@ -516,7 +517,7 @@ export default function CourierServiceScreen({ business, money, boostExpiresAt, 
           return (
             <Pressable
               key={car.instanceId}
-              style={[styles.carCard, { borderColor: carColor, opacity: delivered ? 1 : 0.6 }]}
+              style={[styles.carCard, { width: (screenW - 42) / 2, borderColor: carColor, opacity: delivered ? 1 : 0.6 }]}
               onPress={() => delivered && setDetailCarId(car.instanceId)}
             >
               <View
@@ -1429,7 +1430,6 @@ const styles = StyleSheet.create({
   // Car grid (2-column) - compact car cards, half-size bus cards
   carGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   carCard: {
-    width: (screenW - 42) / 2,
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
@@ -1570,7 +1570,7 @@ const styles = StyleSheet.create({
   carCardInsuredText: { fontSize: 10, color: '#4ade80', fontWeight: '600' },
   // District grid
   districtGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
-  districtCard: { width: (screenW - 42) / 2, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)' },
+  districtCard: { width: '48%', backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)' },
   districtCardOwned: { borderColor: 'rgba(74,222,128,0.3)', backgroundColor: 'rgba(74,222,128,0.06)' },
   districtCardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
   districtCardName: { fontSize: 14, color: '#fff', fontWeight: '800' },

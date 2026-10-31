@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { View, ScrollView, Pressable, StyleSheet, Dimensions, TextInput, LayoutAnimation, Platform } from 'react-native';
+import { View, ScrollView, Pressable, StyleSheet, TextInput, LayoutAnimation, Platform } from 'react-native';
 import Text, { useLanguage } from '../../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from '../../data/hapticsProxy';
@@ -80,7 +80,6 @@ import {
   getBusinessTaxRate,
 } from '../../data/businesses';
 
-const screenW = Dimensions.get('window').width;
 const ACCENT = '#a78bfa';
 
 // Compact cycle pill - tap arrows to cycle through items, tap pill to select

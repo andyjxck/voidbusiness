@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { View, ScrollView, Pressable, StyleSheet, Dimensions, TextInput, Image, Animated } from 'react-native';
+import { View, ScrollView, Pressable, StyleSheet, TextInput, Image, Animated } from 'react-native';
+import { useContentWidth } from '../../data/layout';
 import Text, { useLanguage } from '../../components/AppText';
 import Svg, { G, Polygon, Text as SvgText, Circle, Path, Rect } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
@@ -75,7 +76,6 @@ import {
   getBusinessTaxRate,
 } from '../../data/businesses';
 
-const screenW = Dimensions.get('window').width;
 const ACCENT = '#f472b6';
 
 // Compact cycle pill - tap arrows to cycle through items, tap pill to select
@@ -205,6 +205,7 @@ export default function MovieStudioScreen({ business, money, boostExpiresAt, onB
 
   // Map state (for Sets tab)
   const MAP_VIEW_H = 380;
+  const screenW = useContentWidth();
   const mapAreaW = screenW - 32;
   const fitZoom = Math.min(mapAreaW / CITY_MAP.width, MAP_VIEW_H / CITY_MAP.height);
   const initialZoom = fitZoom * 1.3;

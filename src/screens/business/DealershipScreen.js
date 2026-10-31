@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { View, ScrollView, Pressable, StyleSheet, Dimensions, Image } from 'react-native';
+import { View, ScrollView, Pressable, StyleSheet, Image } from 'react-native';
+import { useContentWidth } from '../../data/layout';
 import Text, { useLanguage } from '../../components/AppText';
 import Svg, { G, Polygon, Text as SvgText, Circle, Rect } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
@@ -100,7 +101,7 @@ export default function DealershipScreen({ business, money, boostExpiresAt, onBa
   const [showTeamRoster, setShowTeamRoster] = useState(false);
   const [isMapTouching, setIsMapTouching] = useState(false);
   // Map state
-  const screenW = Dimensions.get('window').width;
+  const screenW = useContentWidth();
   const MAP_VIEW_H = 380;
   const mapAreaW = screenW - 32;
   const fitZoom = Math.min(mapAreaW / CITY_MAP.width, MAP_VIEW_H / CITY_MAP.height);

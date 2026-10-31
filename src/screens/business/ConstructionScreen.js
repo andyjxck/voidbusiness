@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { View, ScrollView, Pressable, StyleSheet, Modal, Dimensions, TextInput, Image, Animated } from 'react-native';
+import { View, ScrollView, Pressable, StyleSheet, Modal, TextInput, Image, Animated } from 'react-native';
+import { useContentWidth } from '../../data/layout';
 import Text, { useLanguage } from '../../components/AppText';
 import Svg, { G, Polygon, Text as SvgText, Circle, Path, Rect, Line } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -97,7 +98,7 @@ export default function ConstructionScreen({ business, money, boostExpiresAt, on
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   // Map state
-  const screenW = Dimensions.get('window').width;
+  const screenW = useContentWidth();
   const MAP_VIEW_H = 380;
   const mapAreaW = screenW - 32;
   const fitZoom = Math.min(mapAreaW / CITY_MAP.width, MAP_VIEW_H / CITY_MAP.height);
